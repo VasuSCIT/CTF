@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/css/font-awesome.min.css" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+
+  <title>Bootstrap 5 Login Page Design</title>
+
+  <script>
+    function setCookie(name, value, days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + date.toUTCString();
+      document.cookie = name + "=" + value + ";" + expires + ";path=/";
+    }
+
+    function getCookie(name) {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+      }
+      return null;
+    }
+
+    function deleteCookie(name) {
+      document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('email').value;
+
+      if (username) {
+        setCookie('username', username, 7);
+        setCookie('challenge', "tenet", 7);
+        setCookie('currentStep', 0, 7);
+        await checkStep();
+      } else {
+        replaceInputWithClue(-1);
+      }
+    }
+
+    async function checkStep() {
+      const currentStep = parseInt(getCookie('currentStep'), 10);
+      const currentValue = getCookie('challenge');
+
+      if (isNaN(currentStep)) {
+        return; // No step information, display login input
+      }
+
+      try {
+        const response = await fetch('/checkStep', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ currentStep, currentValue })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          replaceInputWithClue(-4);
+        } else if (data.flag) {
+          replaceInputWithClue(-2, data.flag);
+          deleteCookie('currentStep');
+          deleteCookie('challenge');
+        } else {
+          replaceInputWithClue(currentStep);
+          setCookie('currentStep', data.nextStep, 7);
+          setCookie('challenge', currentValue, 7);
+        }
+      } catch (error) {
+        replaceInputWithClue(-3);
+      }
+    }
+
+    function replaceInputWithClue(step, flag = '') {
+      const inputContainer = document.getElementById('input-container');
+      const clueElement = document.createElement('p');
+      clueElement.id = 'clue';
+      clueElement.className = 'ctf-instructions';
+
+      if (step === -1) {
+        clueElement.textContent = 'Please enter a username.';
+      } else if (step === -2) {
+        clueElement.textContent = 'Congratulations! Here is your flag: ' + flag;
+      } else if (step === -3) {
+        clueElement.textContent = 'Error retrieving flag.';
+      } else if (step === -4) {
+        clueElement.textContent = 'Incorrect value. Please try again.';
+      } else {
+        clueElement.textContent = 'Clue: ' + (step === 0 ? "Look for something sweet" : `This is just ${step} of 5 steps.`);
+      }
+
+      inputContainer.innerHTML = '';
+      inputContainer.appendChild(clueElement);
+
+      const loginButton = document.querySelector('.btn_uy');
+      if (loginButton) {
+        loginButton.style.display = 'none';
+      }
+    }
+
+    window.onload = checkStep;
+  </script>
+</head>
+<body>
+  <section class="form-01-main">
+    <div class="form-cover">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="form-sub-main">
+              <div class="_main_head_as">
+                <a href="#">
+                  <img src="assets/images/vector.png">
+                </a>
+              </div>
+              <div id="input-container" class="form-group">
+                <input id="email" name="email" class="form-control _ge_de_ol" type="text" placeholder="Enter Username" required="" aria-required="true">
+              </div>
+              <div class="form-group btn_uy">
+                <button class="btn btn-primary" onclick="handleLogin()">Login</button>
+              </div>
+              <div class="form-group">
+                <p class="ctf-instructions">Welcome to the CTF Challenge!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
